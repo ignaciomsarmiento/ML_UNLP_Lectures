@@ -18,7 +18,7 @@ jupyter:
 </div>
 
 
-<a target="_blank" href="https://colab.research.google.com/github/ignaciomsarmiento/ML_UNLP_Lectures/blob/main/Week03/Notebook_SS03_arboles.ipynb">
+<a target="_blank" href="https://colab.research.google.com/github/ignaciomsarmiento/ML_UNLP_Lectures/blob/main/Week04/Notebook_SS04_clasification.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
@@ -153,54 +153,6 @@ y_test.head()
 
 ```
 
-## Classification 
-
-\begin{align}
-\hat{Y}_i= 1[\hat{p}_i >0.5]
-\end{align}
-
-```{python}
-
-# Define the rule (threshold)
-rule = 0.5
-
-# Create the predicted class labels based on the rule
-y_test['Default_hat_logit'] = (y_test['prob_hat'] > rule).astype(int)
-
-# Display the first few rows of the specified columns
-print(y_test[['Default', 'prob_hat', 'Default_hat_logit']].head(30))
-```
-
-```{python}
-from sklearn.metrics import accuracy_score
-
-accuracy = accuracy_score(
-            y_true    = y_test['Default'],
-            y_pred    = y_test['Default_hat_logit'],
-            normalize = True
-           )
-print("")
-print(f"El accuracy de test es: {100*accuracy}%")
-
-
-```
-
-```{python}
-from sklearn.metrics import ConfusionMatrixDisplay
-
-# Matriz de confusión de las predicciones de test
-# ==============================================================================
-confusion_matrix = pd.crosstab(
-    y_test['Default'],
-    y_test['Default_hat_logit'],
-    rownames=['Real'],
-    colnames=['Predicción']
-)
-confusion_matrix
-
-
-```
-
 # CARTs
 
 ```{python}
@@ -244,8 +196,6 @@ plot = plot_tree(
 
 ```
 
-## Predicción y evaluación del modelo
-
 ```{python}
 
 # Predict the probabilities
@@ -256,46 +206,7 @@ y_test.head()
 
 ```
 
-```{python}
-
-# Create the predicted class labels based on the rule
-y_test['Default_hat_tree'] = (y_test['prob_hat_tree'] > rule).astype(int)
-
-```
-
-```{python}
-
-# Display the first few rows of the specified columns
-print(y_test[['Default', 'prob_hat', 'prob_hat_tree', 'Default_hat_logit','Default_hat_tree']].head(30))
-```
-
-```{python}
-
-accuracy = accuracy_score(
-            y_true    = y_test['Default'],
-            y_pred    = y_test['Default_hat_tree'],
-            normalize = True
-           )
-print("")
-print(f"El accuracy de test es: {100*accuracy}%")
-
-
-```
-
-```{python}
-
-# Matriz de confusión de las predicciones de test
-# ==============================================================================
-confusion_matrix = pd.crosstab(
-    y_test['Default'],
-    y_test['Default_hat_tree'],
-    rownames=['Real'],
-    colnames=['Predicción']
-)
-confusion_matrix
-```
-
-### Purnning
+### Pruning
 
 ```{python}
 from sklearn.model_selection import GridSearchCV
@@ -308,6 +219,11 @@ param_grid
 ```
 
 ```{python}
+from sklearn.metrics import make_scorer, f1_score
+
+f1_scorer = make_scorer(f1_score)
+
+
 
 # Búsqueda por validación cruzada
 grid_tree = GridSearchCV(
@@ -319,7 +235,7 @@ grid_tree = GridSearchCV(
                             random_state      = 123
                        ),
         param_grid = param_grid,
-        scoring    = 'accuracy',
+        scoring    = f1_scorer,
         cv         = 5,
         refit      = True,
         return_train_score = True
@@ -332,8 +248,8 @@ grid_tree.fit(X_train, y_train)
 ```{python}
 fig, ax = plt.subplots(figsize=(6, 3.84))
 scores = pd.DataFrame(grid_tree.cv_results_)
-scores.plot(x='param_ccp_alpha', y='mean_train_score', yerr='std_train_score', ax=ax)
-scores.plot(x='param_ccp_alpha', y='mean_test_score', yerr='std_test_score', ax=ax)
+scores.plot(x='param_ccp_alpha', y='mean_train_score', ax=ax)
+scores.plot(x='param_ccp_alpha', y='mean_test_score', ax=ax)
 ax.set_title("Error de validacion cruzada vs hiperparámetro ccp_alpha");
 
 ```
@@ -358,38 +274,6 @@ y_test['prob_hat_tree_cp'] = model_tree_final.predict_proba(X_test)[:, 1]
 # Display the first few rows of the specified columns
 y_test.head()
 
-```
-
-```{python}
-
-# Create the predicted class labels based on the rule
-y_test['Default_hat_tree_cp'] = (y_test['prob_hat_tree_cp'] > rule).astype(int)
-
-```
-
-```{python}
-
-accuracy = accuracy_score(
-            y_true    = y_test['Default'],
-            y_pred    = y_test['Default_hat_tree_cp'],
-            normalize = True
-           )
-print("")
-print(f"El accuracy de test es: {100*accuracy}%")
-
-
-```
-
-```{python}
-# Matriz de confusión de las predicciones de test
-# ==============================================================================
-confusion_matrix = pd.crosstab(
-    y_test['Default'],
-    y_test['Default_hat_tree_cp'],
-    rownames=['Real'],
-    colnames=['Predicción']
-)
-confusion_matrix
 ```
 
 ## Random Forests
@@ -468,38 +352,6 @@ y_test.head()
 
 ```
 
-```{python}
-
-# Create the predicted class labels based on the rule
-y_test['Default_hat_forest'] = (y_test['prob_hat_forest'] > rule).astype(int)
-
-```
-
-```{python}
-
-accuracy = accuracy_score(
-            y_true    = y_test['Default'],
-            y_pred    = y_test['Default_hat_forest'],
-            normalize = True
-           )
-print("")
-print(f"El accuracy de test es: {100*accuracy}%")
-
-
-```
-
-```{python}
-# Matriz de confusión de las predicciones de test
-# ==============================================================================
-confusion_matrix = pd.crosstab(
-    y_test['Default'],
-    y_test['Default_hat_forest'],
-    rownames=['Real'],
-    colnames=['Predicción']
-)
-confusion_matrix
-```
-
 ## Importancia de predictores
 ### Importancia por pureza de nodos
 
@@ -536,4 +388,350 @@ df_importancia['feature'] = X_train.columns
 df_importancia.sort_values('importances_mean', ascending=False)
 
 
+```
+
+# AdaBoost
+
+```{python}
+from sklearn.ensemble import AdaBoostClassifier
+```
+
+```{python}
+model_ada= AdaBoostClassifier(
+                DecisionTreeClassifier(max_depth=2),
+                                      n_estimators=300
+)
+```
+
+```{python}
+# Entrenamiento del modelo
+# ------------------------------------------------------------------------------
+model_ada.fit(X_train, y_train)
+```
+
+```{python}
+# Predict the probabilities
+y_test['prob_hat_ada'] = model_ada.predict_proba(X_test)[:, 1]
+
+# Display the first few rows of the specified columns
+y_test.head()
+
+```
+
+# Classification and Missclasification
+
+<!-- #region -->
+
+
+\begin{align}
+\hat{Y}_i= 1[\hat{p}_i >0.5]
+\end{align}
+<!-- #endregion -->
+
+```{python}
+
+# Define the rule (threshold)
+rule = 0.5
+
+# Create the predicted class labels based on the rule
+y_test['Default_hat_logit'] = (y_test['prob_hat'] > rule).astype(int)
+
+# Display the first few rows of the specified columns
+y_test[['Default', 'prob_hat', 'Default_hat_logit']].head(30)
+```
+
+```{python}
+from sklearn.metrics import accuracy_score
+
+accuracy = accuracy_score(
+            y_true    = y_test['Default'],
+            y_pred    = y_test['Default_hat_logit'],
+            normalize = True
+           )
+print("")
+print(f"El accuracy de test es: {100*accuracy}%")
+
+
+```
+
+```{python}
+from sklearn.metrics import ConfusionMatrixDisplay
+
+# Matriz de confusión de las predicciones de test
+# ==============================================================================
+confusion_matrix = pd.crosstab(
+    y_test['Default'],
+    y_test['Default_hat_logit'],
+    rownames=['Real'],
+    colnames=['Predicción']
+)
+confusion_matrix
+
+
+```
+
+## Trees
+
+```{python}
+
+# Create the predicted class labels based on the rule
+y_test['Default_hat_tree'] = (y_test['prob_hat_tree'] > rule).astype(int)
+
+```
+
+```{python}
+
+accuracy = accuracy_score(
+            y_true    = y_test['Default'],
+            y_pred    = y_test['Default_hat_tree'],
+            normalize = True
+           )
+print("")
+print(f"El accuracy de test es: {100*accuracy}%")
+
+
+```
+
+```{python}
+
+# Matriz de confusión de las predicciones de test
+# ==============================================================================
+confusion_matrix = pd.crosstab(
+    y_test['Default'],
+    y_test['Default_hat_tree'],
+    rownames=['Real'],
+    colnames=['Predicción']
+)
+confusion_matrix
+```
+
+## Trees CP
+
+```{python}
+
+# Create the predicted class labels based on the rule
+y_test['Default_hat_tree_cp'] = (y_test['prob_hat_tree_cp'] > rule).astype(int)
+
+```
+
+```{python}
+
+accuracy = accuracy_score(
+            y_true    = y_test['Default'],
+            y_pred    = y_test['Default_hat_tree_cp'],
+            normalize = True
+           )
+print("")
+print(f"El accuracy de test es: {100*accuracy}%")
+
+
+```
+
+```{python}
+# Matriz de confusión de las predicciones de test
+# ==============================================================================
+confusion_matrix = pd.crosstab(
+    y_test['Default'],
+    y_test['Default_hat_tree_cp'],
+    rownames=['Real'],
+    colnames=['Predicción']
+)
+confusion_matrix
+```
+
+## Forest
+
+```{python}
+
+# Create the predicted class labels based on the rule
+y_test['Default_hat_forest'] = (y_test['prob_hat_forest'] > rule).astype(int)
+
+```
+
+```{python}
+
+accuracy = accuracy_score(
+            y_true    = y_test['Default'],
+            y_pred    = y_test['Default_hat_forest'],
+            normalize = True
+           )
+print("")
+print(f"El accuracy de test es: {100*accuracy}%")
+
+
+```
+
+```{python}
+# Matriz de confusión de las predicciones de test
+# ==============================================================================
+confusion_matrix = pd.crosstab(
+    y_test['Default'],
+    y_test['Default_hat_forest'],
+    rownames=['Real'],
+    colnames=['Predicción']
+)
+confusion_matrix
+```
+
+## AdaBoost
+
+```{python}
+
+# Create the predicted class labels based on the rule
+y_test['Default_hat_ada'] = (y_test['prob_hat_ada'] > rule).astype(int)
+
+```
+
+```{python}
+
+accuracy = accuracy_score(
+            y_true    = y_test['Default'],
+            y_pred    = y_test['Default_hat_ada'],
+            normalize = True
+           )
+print("")
+print(f"El accuracy de test es: {100*accuracy}%")
+
+
+```
+
+```{python}
+# Matriz de confusión de las predicciones de test
+# ==============================================================================
+confusion_matrix = pd.crosstab(
+    y_test['Default'],
+    y_test['Default_hat_ada'],
+    rownames=['Real'],
+    colnames=['Predicción']
+)
+confusion_matrix
+```
+
+```{python}
+from sklearn.metrics import f1_score
+
+
+
+# Dictionary to hold F1 scores
+f1_scores = {}
+
+f1_scores['Logit'] = f1_score(    y_test['Default'], y_test['Default_hat_logit'])
+f1_scores['CART'] = f1_score(    y_test['Default'], y_test['Default_hat_tree'])
+f1_scores['CART CP'] = f1_score(    y_test['Default'], y_test['Default_hat_tree_cp'])
+f1_scores['Forest'] = f1_score(    y_test['Default'], y_test['Default_hat_forest'])
+f1_scores['AdaBoost'] = f1_score(    y_test['Default'], y_test['Default_hat_ada'])
+
+```
+
+```{python}
+f1_df = pd.DataFrame(list(f1_scores.items()), columns=['Model', 'F1 Score'])
+print(f1_df)
+```
+
+```{python}
+from sklearn.metrics import roc_curve, auc
+
+
+models = {
+    'Logit': logit_model,
+    'CART': model_tree,
+    'CART CP': model_tree_final,
+    'Random Forest': model_grid_forest_final,
+    'AdaBoost': model_ada
+}
+
+auc_scores = {}
+
+```
+
+```{python}
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred_prob = model.predict_proba(X_test)[:, 1]
+    fpr, tpr, _ = roc_curve(y_test['Default'], y_pred_prob)
+    roc_auc = auc(fpr, tpr)
+    auc_scores[name] = roc_auc
+
+    # Plot ROC curve
+    plt.plot(fpr, tpr, label=f'{name} (area = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], 'k--')  # Dashed diagonal
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curves')
+    plt.legend(loc='lower right')
+    plt.show()
+```
+
+```{python}
+# Create DataFrame for AUC scores
+auc_df = pd.DataFrame(list(auc_scores.items()), columns=['Model', 'AUC Score'])
+auc_df
+```
+
+```{python}
+fpr, tpr, thresholds = roc_curve(y_test['Default'], y_test['prob_hat'])
+
+# Calculate the Euclidean distance for each point on the ROC curve from the top-left corner
+distances = np.sqrt((1 - tpr) ** 2 + fpr ** 2)
+
+# Find the optimal threshold
+optimal_idx = np.argmin(distances)
+optimal_threshold = thresholds[optimal_idx]
+optimal_threshold
+```
+
+```{python}
+
+plt.figure()
+plt.plot(fpr, tpr, label='ROC curve')
+plt.plot(fpr[optimal_idx], tpr[optimal_idx], 'bo', label='Optimal Threshold')
+plt.fill_between(fpr, tpr, alpha=0.2)
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic')
+plt.legend(loc="lower right")
+plt.show()
+
+```
+
+```{python}
+
+# Create the predicted class labels based on the rule
+y_test['Default_hat_optimal'] = (y_test['prob_hat'] > optimal_threshold).astype(int)
+
+```
+
+```{python}
+
+accuracy = accuracy_score(
+            y_true    = y_test['Default'],
+            y_pred    = y_test['Default_hat_optimal'],
+            normalize = True
+           )
+print("")
+print(f"El accuracy de test es: {100*accuracy}%")
+
+
+```
+
+```{python}
+
+
+print(f"El F1 de test es: {100*f1_score(    y_test['Default'], y_test['Default_hat_logit'])}%")
+```
+
+```{python}
+# Matriz de confusión de las predicciones de test
+# ==============================================================================
+confusion_matrix = pd.crosstab(
+    y_test['Default'],
+    y_test['Default_hat_logit'],
+    rownames=['Real'],
+    colnames=['Predicción']
+)
+confusion_matrix
 ```
