@@ -53,6 +53,7 @@ import pandas as pd
 
 ```{python}
 db = pd.read_csv("https://raw.githubusercontent.com/ignaciomsarmiento/datasets/main/credit.csv")
+db.head()
 ```
 
 ```{python}
@@ -61,14 +62,15 @@ db.head()
 ```
 
 ```{python}
+db['Default'].value_counts(normalize=True) * 100
+```
+
+```{python}
 db['foreign'].value_counts(normalize=True) * 100
-
-
 
 ```
 
 ```{python}
-
 import matplotlib.pyplot as plt
 from statsmodels.graphics.mosaicplot import mosaic
 
@@ -719,8 +721,6 @@ print(f"El accuracy de test es: {100*accuracy}%")
 ```
 
 ```{python}
-
-
 print(f"El F1 de test es: {100*f1_score(    y_test['Default'], y_test['Default_hat_logit'])}%")
 ```
 
