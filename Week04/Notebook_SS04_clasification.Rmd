@@ -92,7 +92,6 @@ p_i &=\frac{e^{X_i\beta}}{1+e^{X_i\beta}}
 
 
 ```{python}
-import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 
@@ -127,10 +126,6 @@ logit_model.fit(X_train,y_train)
 
 ```
 
-```{python}
-
-```
-
 <!-- #region -->
 ## Prediction
 
@@ -146,12 +141,11 @@ y_test.head()
 ```
 
 ```{python}
-
 # Predict the probabilities
 y_test['prob_hat'] = logit_model.predict_proba(X_test)[:, 1]
 
 # Display the first few rows of the specified columns
-y_test.head()
+y_test.head(30)
 
 ```
 
@@ -292,10 +286,10 @@ import multiprocessing
 # Grid de hiperparámetros evaluados
 # ==============================================================================
 param_grid = {
-    'n_estimators': [150,200],
-    'max_features': [5, 7, 9],
-    'max_depth'   : [None, 3, 10, 20],
-    'criterion'   : ['gini', 'entropy']
+    'n_estimators': [150,200], #número de árboles
+    'max_features': [5, 7, 9], # número de predictores
+    'max_depth'   : [None, 3, 10, 20], #profundidad
+    'criterion'   : ['gini', 'entropy'] # uno puede usar gini o entropia
 }
 
 # Búsqueda por grid search con validación cruzada
@@ -400,8 +394,8 @@ from sklearn.ensemble import AdaBoostClassifier
 
 ```{python}
 model_ada= AdaBoostClassifier(
-                DecisionTreeClassifier(max_depth=2),
-                                      n_estimators=300
+                DecisionTreeClassifier(max_depth=1), #clasificador G(X)
+                                      n_estimators=300 # número de iteraciones
 )
 ```
 
