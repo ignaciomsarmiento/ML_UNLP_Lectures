@@ -1,0 +1,502 @@
+---
+jupyter:
+  jupytext:
+    formats: ipynb,Rmd
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.15.2
+  kernelspec:
+    display_name: Python 3 (ipykernel)
+    language: python
+    name: python3
+---
+
+<div >
+    <img src = "../banner/banner_ML_UNLP_1900_200.png" />
+</div>
+
+
+<a target="_blank" href="https://colab.research.google.com/github/ignaciomsarmiento/ML_UNLP_Lectures/blob/main/Week04/Notebook_SS04_clasification.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
+
+
+
+
+# Classification
+
+
+To work through the steps of probability-based classification, we’ll use a real dataset on loans and credit from a set of local lenders in Germany (taken from the UC Irvine Machine Learning Repository and cleaned for our purposes). 
+
+Credit scoring is a classic problem of classification, and it remains one of the big application domains for ML: use previous loan results (default versus payment) to train a model that can predict the performance of potential new loans.
+
+\begin{align}
+Default=f(x) + u
+\end{align}
+
+where $Default=I(Default=1)$
+
+
+
+
+# Dataset
+
+
+Let's load the modules:
+
+```{python}
+import numpy as np
+import pandas as pd
+```
+
+```{python}
+db = pd.read_csv("https://raw.githubusercontent.com/ignaciomsarmiento/datasets/main/credit.csv")
+db.head()
+```
+
+```{python}
+db = db.iloc[:, 1:] #remove first column
+db.head()
+```
+
+```{python}
+db['Default'].value_counts(normalize=True) * 100
+```
+
+```{python}
+db['foreign'].value_counts(normalize=True) * 100
+
+```
+
+```{python}
+import matplotlib.pyplot as plt
+from statsmodels.graphics.mosaicplot import mosaic
+
+# Assuming df is your DataFrame equivalent to the 'credit' data frame in R
+# and it contains 'Default' and 'history' columns
+
+# Create a mosaic plot
+mosaic(db, ['history', 'Default'], title='Mosaic Plot of Default by History')
+plt.ylabel('Default')
+plt.show()
+
+```
+
+## Clean and plit the data
+
+```{python}
+from sklearn.model_selection import train_test_split
+
+
+# Separate the independent and dependent variables
+X = db.drop('Default', axis=1)
+y = db['Default']
+
+
+X_train, X_test, y_train, y_test = train_test_split(
+                                        X,
+                                        y,
+                                        train_size   = 0.8,
+                                        random_state = 1234,
+                                        shuffle      = True,
+                                        stratify=y
+                                    )
+
+```
+
+```{python}
+y_train.value_counts(normalize=True) * 100
+```
+
+```{python}
+y_test.value_counts(normalize=True) * 100
+```
+
+```{python}
+# One-hot encode categorical variables
+X_train_to_encode=X_train.drop(['duration', 'amount', 'installment', 'age'], axis=1)
+X_test_to_encode=X_test.drop(['duration', 'amount', 'installment', 'age'], axis=1)
+
+
+X_train_encoded = pd.get_dummies(X_train_to_encode,columns=['history', 'purpose','foreign','rent'], drop_first=True)
+X_test_encoded = pd.get_dummies(X_test_to_encode,columns=['history', 'purpose','foreign','rent'], drop_first=True)
+
+# Ensure the same columns in both train and test sets
+X_train_encoded, X_test_encoded = X_train_encoded.align(X_test_encoded, join='left', axis=1, fill_value=0)
+
+
+```
+
+```{python}
+X_train_encoded
+```
+
+```{python}
+from sklearn.preprocessing import StandardScaler
+
+
+# Create a list of numerical columns (i.e., columns to be scaled)
+numerical_columns = X_train.columns.drop(['history', 'purpose', 'foreign', 'rent'])
+numerical_columns
+
+# # Initialize the StandardScaler
+scaler = StandardScaler()
+
+# # Fit the scaler to the numerical columns of the training data and transform
+X_train_scaled = scaler.fit_transform(X_train[numerical_columns])
+# # Transform the test data
+X_test_scaled = scaler.fit_transform(X_test[numerical_columns])
+
+# Convert the scaled arrays back into DataFrames
+X_train_scaled_df = pd.DataFrame(X_train_scaled, columns=numerical_columns, index=X_train.index)
+X_test_scaled_df = pd.DataFrame(X_test_scaled, columns=numerical_columns, index=X_test.index)
+
+# Reset the index of the DataFrames to align them correctly
+X_train_scaled_df.reset_index(drop=True, inplace=True)
+X_test_scaled_df.reset_index(drop=True, inplace=True)
+X_train_encoded.reset_index(drop=True, inplace=True)
+X_test_encoded.reset_index(drop=True, inplace=True)
+
+# Combine scaled numerical and encoded categorical features
+X_train = pd.concat([X_train_scaled_df, X_train_encoded], axis=1)
+X_test = pd.concat([X_test_scaled_df, X_test_encoded], axis=1)
+```
+
+```{python}
+X_train.head()
+```
+
+## Estimación Logit
+
+\begin{align}
+p_i &=\frac{e^{X_i\beta}}{1+e^{X_i\beta}}
+\end{align}
+
+
+```{python}
+from sklearn.linear_model import LogisticRegression
+
+# Fit the logistic regression model
+logit_model = LogisticRegression(max_iter=200 )
+logit_model.fit(X_train,y_train)
+
+```
+
+<!-- #region -->
+## Prediction
+
+
+\begin{align}
+\hat{p}_i &=\frac{e^{X_i\hat{\beta}}}{1+e^{X_i\hat{\beta}}}
+\end{align}
+<!-- #endregion -->
+
+```{python}
+y_test=pd.DataFrame(y_test)
+y_test.head()
+```
+
+```{python}
+# Predict the probabilities
+y_test['prob_hat'] = logit_model.predict_proba(X_test)[:, 1]
+
+# Display the first few rows of the specified columns
+y_test.head(10)
+
+```
+
+## Red Neuronal
+
+```{python}
+#Keras necesita floats de 32
+
+X_train = np.asarray(X_train).astype(np.float32)
+X_test = np.asarray(X_test).astype(np.float32)
+
+
+```
+
+```{python}
+X_train.shape[1]
+```
+
+```{python}
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Activation, Dropout, BatchNormalization
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
+
+
+model_nn = Sequential([
+  Dense(64, input_dim=X_train.shape[1], activation='relu'),
+  Dropout(0.4),
+  Dense(32, activation='relu'),
+  Dropout(0.3),
+  Dense(1, activation='sigmoid')
+])
+
+
+model_nn.compile(
+    optimizer=Adam(learning_rate=1e-3),
+    loss='binary_crossentropy', #y log(p) + (1-y) log (1-p)
+    metrics=['accuracy']) #total de aciertos/total de obs
+```
+
+We are going to add one extra step: **EarlyStopping**
+
+EarlyStopping is a callback to stop training when a monitored metric has stopped improving.
+   -  monitor='val_loss': This specifies that the callback should monitor the validation loss.
+   - patience=10: This sets the number of epochs with no improvement after which training will be stopped. Here, training will stop if there is no decrease in validation loss for 10 consecutive epochs.
+   - verbose=1: This enables verbose output, which means the callback will print a message when it stops the training.
+   - mode='min': This tells the callback that the training should stop when the monitored quantity (in this case, val_loss) has stopped decreasing.
+
+This callback are used during model training to automatically stop training when the validation loss does not improve for a certain number of epochs (EarlyStopping).
+
+This approach is commonly used to prevent overfitting.
+
+```{python}
+history = model_nn.fit(
+    X_train, y_train,
+    epochs=150,
+    batch_size=256,
+    validation_split=0.2,
+    callbacks=EarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='min'),
+    verbose=1)
+```
+
+```{python}
+hist = pd.DataFrame(history.history)
+hist['epoch'] = history.epoch
+
+def plot_loss(history):
+  plt.plot(history.history['loss'], label='loss') 
+  plt.xlabel('Epoch')
+  plt.ylabel('Error')
+  plt.legend()
+  plt.grid(True)
+
+plot_loss(history)
+
+```
+
+```{python}
+y_test['prob_hat_nn'] = model_nn.predict(X_test).ravel()
+```
+
+```{python}
+y_test.head()
+```
+
+```{python}
+ model_nn.evaluate(X_train, y_train, verbose=0)
+```
+
+# Classification and Missclasification
+
+<!-- #region -->
+
+
+\begin{align}
+\hat{Y}_i= 1[\hat{p}_i >0.5]
+\end{align}
+<!-- #endregion -->
+
+```{python}
+# Define the rule (threshold)
+rule = 0.5
+
+# Create the predicted class labels based on the rule
+y_test['Default_hat_logit'] = (y_test['prob_hat'] > rule).astype(int)
+
+# Display the first few rows of the specified columns
+y_test[['Default', 'prob_hat', 'Default_hat_logit']].head(10)
+```
+
+```{python}
+from sklearn.metrics import accuracy_score
+
+accuracy = accuracy_score(
+            y_true    = y_test['Default'],
+            y_pred    = y_test['Default_hat_logit'],
+            normalize = True
+           )
+print("")
+print(f"El accuracy de test es: {100*accuracy}%")
+
+
+```
+
+```{python}
+from sklearn.metrics import ConfusionMatrixDisplay
+
+# Matriz de confusión de las predicciones de test
+# ==============================================================================
+confusion_matrix = pd.crosstab(
+    y_test['Default'],
+    y_test['Default_hat_logit'],
+    rownames=['Real'],
+    colnames=['Predicción']
+)
+confusion_matrix
+
+
+```
+
+## Red Neuronal
+
+```{python}
+
+# Create the predicted class labels based on the rule
+y_test['Default_hat_nn'] = (y_test['prob_hat_nn'] > rule).astype(int)
+
+# Display the first few rows of the specified columns
+y_test[['Default', 'prob_hat_nn', 'Default_hat_nn']].head(10)
+```
+
+```{python}
+
+accuracy = accuracy_score(
+            y_true    = y_test['Default'],
+            y_pred    = y_test['Default_hat_nn'],
+            normalize = True
+           )
+print("")
+print(f"El accuracy de test es: {100*accuracy}%")
+
+
+```
+
+```{python}
+# Matriz de confusión de las predicciones de test
+# ==============================================================================
+confusion_matrix = pd.crosstab(
+    y_test['Default'],
+    y_test['Default_hat_nn'],
+    rownames=['Real'],
+    colnames=['Predicción']
+)
+confusion_matrix
+```
+
+# F1 scores
+
+```{python}
+from sklearn.metrics import f1_score
+
+
+
+# Dictionary to hold F1 scores
+f1_scores = {}
+
+f1_scores['Logit'] = f1_score(    y_test['Default'], y_test['Default_hat_logit'])
+f1_scores['NN'] = f1_score(    y_test['Default'], y_test['Default_hat_nn'])
+
+```
+
+```{python}
+f1_df = pd.DataFrame(list(f1_scores.items()), columns=['Model', 'F1 Score'])
+print(f1_df)
+```
+
+# ROC
+
+```{python}
+import sklearn
+from sklearn.metrics import roc_curve, auc
+```
+
+```{python}
+fpr, tpr, _ = roc_curve(y_test['Default'], y_test['prob_hat'])
+roc_auc = auc(fpr, tpr)
+
+
+```
+
+```{python}
+roc_auc
+```
+
+```{python}
+
+# Plot ROC curve
+plt.plot(fpr, tpr, label='Logit')
+plt.plot([0, 1], [0, 1], 'k--')  # Dashed diagonal
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curves')
+plt.legend(loc='lower right')
+plt.show()
+```
+
+```{python}
+
+fpr_nn, tpr_nn, _ = roc_curve(y_test['Default'], y_test['prob_hat_nn'])
+roc_auc_nn = auc(fpr_nn, tpr_nn)
+roc_auc_nn
+
+
+```
+
+```{python}
+
+# Plot ROC curve
+plt.plot(fpr_nn, tpr_nn, label='NN')
+plt.plot([0, 1], [0, 1], 'k--')  # Dashed diagonal
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curves')
+plt.legend(loc='lower right')
+plt.show()
+```
+
+```{python}
+fpr, tpr, thresholds = roc_curve(y_test['Default'], y_test['prob_hat'])
+
+# Calculate the Euclidean distance for each point on the ROC curve from the top-left corner
+distances = np.sqrt((1 - tpr) ** 2 + fpr ** 2)
+
+# Find the optimal threshold
+optimal_idx = np.argmin(distances)
+optimal_threshold = thresholds[optimal_idx]
+optimal_threshold
+```
+
+```{python}
+
+# Create the predicted class labels based on the rule
+y_test['Default_hat_optimal'] = (y_test['prob_hat'] > optimal_threshold).astype(int)
+
+```
+
+```{python}
+
+accuracy = accuracy_score(
+            y_true    = y_test['Default'],
+            y_pred    = y_test['Default_hat_optimal'],
+            normalize = True
+           )
+print("")
+print(f"El accuracy de test es: {100*accuracy}%")
+
+
+```
+
+```{python}
+print(f"El F1 de test es: {100*f1_score(    y_test['Default'], y_test['Default_hat_optimal'])}%")
+```
+
+```{python}
+# Matriz de confusión de las predicciones de test
+# ==============================================================================
+confusion_matrix = pd.crosstab(
+    y_test['Default'],
+    y_test['Default_hat_optimal'],
+    rownames=['Real'],
+    colnames=['Predicción']
+)
+confusion_matrix
+```
