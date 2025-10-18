@@ -5,7 +5,8 @@
 
 ## Objetivo del Curso
 
-Introducir a los estudiantes en técnicas de Machine Learning aplicadas, con énfasis en predicción e inferencia causal.
+Introducir a los estudiantes en técnicas de Machine Learning aplicadas en economía.
+
 
 ## Página del Curso
 
@@ -14,7 +15,7 @@ Consulta más detalles en: [Página del curso](https://ignaciomsarmiento.github.
 
 ## Contenidos del Repositorio
 
-- **Week00 a Week06**: Materiales de las clases semanales, slides y cuadernos jupyter.
+- **Week01 a Week06**: Materiales de las clases semanales, slides y cuadernos jupyter.
 - **PS1 y PS2**: Enunciados de los trabajos prácticos grupales.
 
 
